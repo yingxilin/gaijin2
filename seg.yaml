@@ -1,0 +1,76 @@
+num_workers: 4
+split: 'val'
+
+# embedding method
+feature_model: 'dinov2'
+#feature_model_name: 'vitl14_reg'
+
+#classification method
+classifier: 'nn'
+#classifier: 'nn'
+batch_size: 32
+
+# other
+random_seed: 777
+root_path: "../../../"
+path_out: "D:/search/fungi/23/FungiTastic/out"
+debug: False
+
+data_path: 'D:/search/fungi/20/data/FungiTastic'
+mask_path: 'D:/search/fungi/23/data/FungiTastic/masks_v2'
+# models will be downloaded to this path
+ckpt_path: 'D:/search/fungi/20/models/fungitastic_ckpts'
+
+# segmentation enhancement options (all default to baseline behavior when disabled)
+seg:
+  device: "cuda"
+
+  prompt_ensemble:
+    enabled: false           # 先只用 "mushroom"，避免多提示引入噪声
+    prompts: ['mushroom']
+    max_boxes: 2             # 限制候选数，减少误检
+    nms_iou: 0.4             # 更严格去重
+    box_thr_init: 0.35       # 提高阈值提升精度
+    text_thr_init: 0.30
+    adaptive: false          # 关闭自适应防止降阈值带来噪声
+
+  sam:
+    multimask: true          # 保留多掩膜，但仅取最优一个
+    topk_per_box: 1
+    box_jitter:
+      enabled: false         # 关闭抖动，避免边界发散
+      scales: [0.9, 1.0, 1.1]
+      max_per_box: 2
+    center_point_prompt: false
+
+  merge:
+    scheme: 'topk_union'     # 只并最佳的少量掩膜
+    topk: 1
+
+  instance_filter:
+    enabled: true
+    min_iou_pred: 0.90       # SAM 置信度更严
+    area_ratio_range: [0.002, 0.55]  # 去掉极小/极大不合理实例
+
+  postproc:
+    enabled: true
+    threshold_strategy: 'fixed'
+    combine_vote_thr: 0.6    # 更高阈值，边界更干净
+    min_area_ratio: 0.002
+    fill_holes: true
+    open_kernel: 3
+    close_kernel: 3
+    keep_largest_component: false  # 若常出现小噪声可改成 true
+    crf:
+      enabled: false
+    guided_filter:
+      enabled: false
+
+  run:
+    limit: 500                # 小样本先试
+
+  eval:
+    only_existing_masks: true
+    max_samples: 500
+    debug: false
+    parallel: false
